@@ -3,6 +3,7 @@ from python import schemas
 from python import models
 import hashlib
 import pathlib
+from pathlib import Path
 
 # Define the path to the images
 images = pathlib.Path(__file__).parent.resolve() / "images"
@@ -49,8 +50,12 @@ def create_item(db: Session, item: schemas.Item):
 
 
 async def upload_image(image):
-    #load image
-    image_contents = await image.read() 
+    # load_image
+    if isinstance(image, Path): 
+        with open(image, "rb") as f:
+            image_contents = f.read() 
+    else:
+        image_contents = await image.read()
 
     # Hashing images with SHA-256
     sha256 = hashlib.sha256(image_contents).hexdigest()

@@ -1,6 +1,7 @@
 import os
 import logging
-import pathlib
+import pathlib 
+from pathlib import Path
 from fastapi import FastAPI, Form, HTTPException, Depends, File, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -92,7 +93,7 @@ def get_image(image_name: str):
 async def add_item(
     name: str = Form(...),
     category: str = Form(...),
-    image: UploadFile = File(...),
+    image: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
     if not name:
@@ -100,10 +101,13 @@ async def add_item(
     if not category:
         raise HTTPException(status_code=400, detail="category is required")
     
-    try:
-        image_name = await crud.upload_image(image)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+    if image:
+        try:
+            image_name =  await crud.upload_image(image)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+    else:
+        image_name =  await crud.upload_image(Path(__file__).resolve().parent / "images" / "default.jpg")
     
     item = schemas.Item(name=name, category=category, image_name=image_name)
     created_item = crud.create_item(db=db, item=item)
