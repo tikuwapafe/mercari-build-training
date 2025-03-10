@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from main import app, get_db
+from .main import app, get_db
 import pytest
 import sqlite3
 import os
@@ -50,9 +50,12 @@ client = TestClient(app)
     ],
 )
 def test_hello(want_status_code, want_body):
-    response_body = client.get("/").json()
+    response = client.get("/")
+    print(response)
     # STEP 6-2: confirm the status code
+    assert response.status_code == want_status_code
     # STEP 6-2: confirm response body
+    assert response.json() == want_body
 
 
 # STEP 6-4: uncomment this test
