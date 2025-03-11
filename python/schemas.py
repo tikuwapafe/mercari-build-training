@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 from typing import List
 
 #  Pydantic model
@@ -7,8 +7,9 @@ class Item(BaseModel):
     category: str
     image_name: str
 
-    class Config:
-        orm_mode = True
+    model_config: ConfigDict = {
+        'from_attributes': True
+    }
 
 
 class HelloResponse(BaseModel):
@@ -28,6 +29,10 @@ class GetItemResponse(BaseModel):
 class SearchItem(BaseModel):
     name: str
     category: str
+
+    model_config: ConfigDict = {
+        'from_attributes': True
+    }
 
 class SearchItemsResponse(BaseModel):
     items: List[SearchItem]
