@@ -4,27 +4,32 @@ FROM python:3.9.6-alpine
 RUN addgroup -S mercari && adduser -S trainee -G mercari
 
 # Set the working directory
-WORKDIR /python
+WORKDIR /app
+RUN mkdir python
+RUN mkdir python/images
+RUN mkdir python/db
 
 # Install dependencies 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy application code
+COPY __init__.py ./python/
+COPY main.py ./python/
+COPY schemas.py ./python/
+COPY models.py ./python/
+COPY database.py ./python/
+COPY crud.py ./python/
+# Copy images directory
+COPY images/default.jpg ./python/images/
+# Copy database
+COPY db/mercari.sqlite3 ./python/db/
+
+# 権限の変更
+RUN chown -R trainee:mercari /app/python
+
 # Set user to 'trainee'
 USER trainee
 
-# Copy application code
-COPY __init__.py .
-COPY main.py .
-COPY schemas.py .
-COPY models.py .
-COPY database.py .
-COPY crud.py .
-# Copy images directory
-COPY images/default.jpg ./images
-# Copy database
-COPY db/mercari.sqlite3 ./db
-
-
 # Launch FastAPI
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9000", "--reload"]
+CMD ["uvicorn", "python.main:app", "--host", "0.0.0.0", "--port", "9000", "--reload"]
