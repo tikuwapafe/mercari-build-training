@@ -1,44 +1,34 @@
 from fastapi.testclient import TestClient
 from .main import app, get_db
 import pytest
-import sqlite3
-import os
-import pathlib
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
+from python import models
 
-# STEP 6-4: uncomment this test setup
-# test_db = pathlib.Path(__file__).parent.resolve() / "db" / "test_mercari.sqlite3"
+# Create the SQLAlchemy base and engine
+engine = create_engine('sqlite:///python/db/test_mercari.sqlite3', connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-# def override_get_db():
-#     conn = sqlite3.connect(test_db)
-#     conn.row_factory = sqlite3.Row
-#     try:
-#         yield conn
-#     finally:
-#         conn.close()
+def override_get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_db] = override_get_db
 
-# @pytest.fixture(autouse=True)
-# def db_connection():
-#     # Before the test is done, create a test database
-#     conn = sqlite3.connect(test_db)
-#     cursor = conn.cursor()
-#     cursor.execute(
-#         """CREATE TABLE IF NOT EXISTS items (
-# 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-# 		name VARCHAR(255),
-# 		category VARCHAR(255)
-# 	)"""
-#     )
-#     conn.commit()
-#     conn.row_factory = sqlite3.Row  # Return rows as dictionaries
 
-#     yield conn
-
-#     conn.close()
-#     # After the test is done, remove the test database
-#     if test_db.exists():
-#         test_db.unlink() # Remove the file
+@pytest.fixture(autouse=True)
+def db_connection():
+    db = SessionLocal() 
+    # Before the test is done, create a test database
+    models.Base.metadata.create_all(bind=engine)
+    yield db 
+    db.close()
+    # After the test is done, remove the test database
+    models.Base.metadata.drop_all(bind=engine) 
 
 client = TestClient(app)
 
@@ -51,36 +41,30 @@ client = TestClient(app)
 )
 def test_hello(want_status_code, want_body):
     response = client.get("/")
-    print(response)
-    # STEP 6-2: confirm the status code
+    assert response.status_code == want_status_code #confirm the status code
+    assert response.json() == want_body #confirm response body
+
+
+@pytest.mark.parametrize(
+    "args, want_status_code",
+    [
+        ({"name":"used iPhone 16e", "category":"phone"}, 200),
+        ({"name":"", "category":"phone"}, 400),
+    ],
+)
+def test_add_item_e2e(args, want_status_code, db_connection: Session):
+    response = client.post("/items/", data=args)
     assert response.status_code == want_status_code
-    # STEP 6-2: confirm response body
-    assert response.json() == want_body
 
+    if want_status_code >= 400:
+        return  
+    
+    # Check if the response body is correct
+    response_data = response.json()
+    assert "message" in response_data
 
-# STEP 6-4: uncomment this test
-# @pytest.mark.parametrize(
-#     "args, want_status_code",
-#     [
-#         ({"name":"used iPhone 16e", "category":"phone"}, 200),
-#         ({"name":"", "category":"phone"}, 400),
-#     ],
-# )
-# def test_add_item_e2e(args,want_status_code,db_connection):
-#     response = client.post("/items/", data=args)
-#     assert response.status_code == want_status_code
-    
-#     if want_status_code >= 400:
-#         return
-    
-    
-#     # Check if the response body is correct
-#     response_data = response.json()
-#     assert "message" in response_data
-
-#     # Check if the data was saved to the database correctly
-#     cursor = db_connection.cursor()
-#     cursor.execute("SELECT * FROM items WHERE name = ?", (args["name"],))
-#     db_item = cursor.fetchone()
-#     assert db_item is not None
-#     assert dict(db_item)["name"] == args["name"]
+    # Check if the data was saved to the database correctly
+    db_item = db_connection.query(models.Items).\
+                            filter(models.Items.name == args["name"]).one_or_none()
+    assert db_item is not None
+    assert db_item.name == args["name"]
