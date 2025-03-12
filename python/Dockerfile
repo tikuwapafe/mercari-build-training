@@ -25,7 +25,7 @@ COPY images/default.jpg ./python/images/
 # Copy database
 COPY db/mercari.sqlite3 ./python/db/
 
-# change ermission 
+# change permission 
 RUN chown -R trainee:mercari /app/python
 
 # Set user to 'trainee'
