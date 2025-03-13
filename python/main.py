@@ -73,7 +73,7 @@ def search_item(keyword: str, db: Session = Depends(get_db)):
 @app.get("/image/{item_id}")
 def get_image(item_id: int, db: Session = Depends(get_db)):
     # get item from id
-    item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    item = db.query(models.Items).filter(models.Items.id == item_id).first()
     
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
