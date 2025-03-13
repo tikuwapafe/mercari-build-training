@@ -69,18 +69,24 @@ def search_item(keyword: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Item not found")
     return schemas.SearchItemsResponse(items=items)
 
-# return an image (GET /images/{filename})
-@app.get("/image/{image_name}")
-def get_image(image_name: str):
-    # Create image path
-    images = pathlib.Path(__file__).parent.resolve() / "images"
-    image_path = images / image_name
+# return an image (GET /images/{item_id})
+@app.get("/image/{item_id}")
+def get_image(item_id: int, db: Session = Depends(get_db)):
+    # get item from id
+    item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
 
+    image_name = item.image_name  
     if not image_name.endswith(".jpg"):
         raise HTTPException(status_code=400, detail="Image path does not end with .jpg")
-
+    
+    images = pathlib.Path(__file__).parent.resolve() / "images"
+    image_path = images / image_name  
+    
     if not image_path.exists():
-        logger.debug(f"Image not found: {image_path}")
+        logger.debug(f"Image not found for item_id: {item_id}, using default image.")
         image_path = images / "default.jpg"
 
     return FileResponse(image_path)
