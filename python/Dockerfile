@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . ./python/
 
 # change permission 
+
 RUN chown -R trainee:mercari /app/python
 
 # Set user to 'trainee'
