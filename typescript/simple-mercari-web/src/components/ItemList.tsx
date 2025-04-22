@@ -29,12 +29,20 @@ export const ItemList = ({ reload, onLoadCompleted }: Prop) => {
   }, [reload, onLoadCompleted]);
 
   return (
-    <div>
-      {items?.map((item) => {
+    <div className="ItemListContainer">
+      {items?.map((item, index) => {
+        console.log(item.id);
+        console.log(items);
+
+        const item_id = index + 1;
+        
         return (
-          <div key={item.id} className="ItemList">
+          <div key={item_id} className="ItemList">
             {/* TODO: Task 2: Show item images */}
-            <img src={PLACEHOLDER_IMAGE} />
+            <img src={`http://localhost:9000/image/${item.image_name}`} 
+                 alt={item.name} 
+                 className="ItemImage"
+            />
             <p>
               <span>Name: {item.name}</span>
               <br />
